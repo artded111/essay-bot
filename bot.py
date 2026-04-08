@@ -94,3 +94,39 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
+    # ---------- БАЗА ДАННЫХ ----------
+def init_db():
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            free_trial_used INTEGER DEFAULT 0
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def get_user_status(user_id):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT free_trial_used FROM users WHERE user_id = ?", (user_id,))
+    result = cursor.fetchone()
+    
+    if result is None:
+        # Новый пользователь — создаём запись
+        cursor.execute("INSERT INTO users (user_id, free_trial_used) VALUES (?, 0)", (user_id,))
+        conn.commit()
+        conn.close()
+        return 0  # Бесплатная попытка доступна
+    
+    conn.close()
+    return result[0]  # 0 или 1
+
+def mark_trial_used(user_id):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET free_trial_used = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
